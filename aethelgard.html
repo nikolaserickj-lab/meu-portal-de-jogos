@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="pt-pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Aethelgard: Chronicles - Deluxe Beta</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=MedievalSharp&family=Almendra:ital,wght@0,400;0,700;1,400&display=swap');
+
+        * {
+            margin: 0; padding: 0; box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none; touch-action: none;
+        }
+
+        body, html {
+            width: 100%; height: 100%; overflow: hidden;
+            background-color: #050505; color: #f3e5ab;
+            font-family: 'Almendra', serif;
+        }
+
+        #game-container {
+            position: relative; width: 100%; height: 100%;
+            background: #000; display: flex; overflow: hidden;
+        }
+
+        canvas { display: block; width: 100% !important; height: 100% !important; image-rendering: pixelated; }
+
+        .medieval-panel {
+            background: url('https://www.transparenttextures.com/patterns/dark-leather.png'), 
+                        linear-gradient(180deg, #d4c2a1 0%, #b8a078 100%);
+            color: #2d1a0e; border: 4px solid #5d2e0e;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.3), 0 10px 30px rgba(0,0,0,0.8); 
+            border-radius: 8px; padding: 20px;
+        }
+
+        .screen {
+            position: absolute; inset: 0; z-index: 3000;
+            display: flex; align-items: center; justify-content: center;
+            background: radial-gradient(circle, #2a1a0f 0%, #000 100%);
+        }
+
+        #dialog-box {
+            position: absolute; bottom: 160px; left: 50%;
+            transform: translateX(-50%); width: 92%; max-width: 800px;
+            display: none; z-index: 2000; cursor: pointer;
+        }
+
+        .btn-medieval {
+            background: linear-gradient(to bottom, #8b0000, #4a0000); 
+            color: #ffd700; padding: 18px;
+            font-family: 'MedievalSharp'; border: 2px solid #ffd700;
+            margin: 10px 0; cursor: pointer; text-transform: uppercase; width: 100%;
+            box-shadow: 0 4px 0 #222; transition: all 0.1s;
+            text-shadow: 1px 1px 2px black; font-size: 1.2rem;
+            border-radius: 4px;
+        }
+        .btn-medieval:active { transform: translateY(3px); box-shadow: 0 1px 0 #222; }
+
+        .mobile-ui {
+            position: absolute; bottom: 30px; left: 0; width: 100%;
+            display: none; justify-content: space-between; padding: 0 30px;
+            z-index: 2500; pointer-events: none;
+        }
+
+        .joy-btn {
+            width: 75px; height: 75px; background: rgba(20, 10, 5, 0.9);
+            border: 3px solid #ffd700; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: #ffd700; font-size: 1.5rem; pointer-events: auto;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
+        }
+
+        .hp-bar-container {
+            position: absolute; top: 20px; right: 20px; width: 220px; height: 24px;
+            background: #1a0a0a; border: 3px solid #5d2e0e; z-index: 2000;
+            border-radius: 12px; overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        .hp-bar-fill { width: 100%; height: 100%; background: linear-gradient(90deg, #800, #f00); transition: width 0.3s; }
+
+        .char-card {
+            transition: all 0.3s; cursor: pointer; padding: 1rem; border-width: 4px; border-radius: 1rem;
+            background: rgba(0,0,0,0.2);
+        }
+        .char-card.selected {
+            border-color: #ffd700; background: rgba(255, 215, 0, 0.1); transform: scale(1.05);
+            filter: grayscale(0) !important; opacity: 1 !important;
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-container">
+    <div id="flash-effect" style="position:absolute; inset:0; background:white; opacity:0; pointer-events:none; z-index:5000; transition:opacity 0.2s;"></div>
+
+    <!-- Main Menu -->
+    <div id="main-menu" class="screen">
+        <div class="menu-content medieval-panel text-center w-85 max-w-sm">
+            <h1 class="text-5xl mb-12 text-red-800 font-['MedievalSharp']" style="text-shadow: 3px 3px 0px #000;">AETHELGARD</h1>
+            <button class="btn-medieval" onclick="game.showCharSelect()">DESPERTAR</button>
+            <p class="text-[10px] mt-6 uppercase tracking-[0.3em] opacity-60 font-bold">PREVIEW BUILD 3.2 - BETA</p>
+        </div>
+    </div>
+
+    <!-- Character Selection -->
+    <div id="char-select" class="screen" style="display:none">
+        <div class="medieval-panel text-center w-[92%] max-w-lg">
+            <h2 class="font-['MedievalSharp'] text-3xl mb-8 uppercase text-yellow-900">Escolha seu Herói</h2>
+            <div class="flex justify-around mb-8 gap-4">
+                <div id="sel-lara" class="char-card border-transparent grayscale opacity-70" onclick="game.selectChar('LARA')">
+                    <div class="w-24 h-24 bg-[#3d1a11] rounded-full overflow-hidden border-4 border-yellow-700 mb-3 mx-auto shadow-lg">
+                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Lara&hairColor=af5e26&top=longHairCurvy" class="w-full h-full">
+                    </div>
+                    <p class="font-bold text-xl text-yellow-900">LARA</p>
+                    <p class="text-[11px] italic text-red-900">A Princesa Exilada</p>
+                </div>
+                <div id="sel-rex" class="char-card border-transparent grayscale opacity-70" onclick="game.selectChar('REX')">
+                    <div class="w-24 h-24 bg-[#1a1a1a] rounded-full overflow-hidden border-4 border-gray-600 mb-3 mx-auto shadow-lg">
+                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Rex&hairColor=2c1b18&top=shortHair" class="w-full h-full">
+                    </div>
+                    <p class="font-bold text-xl text-yellow-900">REX</p>
+                    <p class="text-[11px] italic text-red-900">O Cavaleiro Negro</p>
+                </div>
+            </div>
+            <button class="btn-medieval" onclick="game.startJourney()">COMEÇAR</button>
+        </div>
+    </div>
+
+    <!-- HUD -->
+    <div id="inventory-screen" class="medieval-panel absolute top-4 left-4 z-10 text-xs hidden py-2 px-6 border-2">
+        <p class="font-bold border-b border-black/20 mb-1 text-sm"><span id="inv-char">LARA</span></p>
+        <p>⚔️ <span id="inv-weapon">Punhos</span></p>
+        <p class="text-[10px] opacity-80 mt-1">📍 <span id="inv-loc">...</span></p>
+    </div>
+
+    <div id="hp-ui" class="hp-bar-container hidden">
+        <div id="hp-fill" class="hp-bar-fill"></div>
+        <div class="absolute inset-0 text-[10px] text-center font-bold text-white flex items-center justify-center uppercase tracking-widest" style="text-shadow:1px 1px 1px black">Vigor</div>
+    </div>
+
+    <!-- Dialogs -->
+    <div id="dialog-box" class="medieval-panel" onclick="game.nextText()">
+        <p id="diag-name" class="font-bold text-red-900 uppercase text-sm mb-1 tracking-widest"></p>
+        <p id="diag-text" class="text-lg italic leading-snug"></p>
+        <div class="text-[9px] text-right mt-4 opacity-40 font-bold italic">Toque para avançar...</div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- Controls -->
+    <div id="mobile-ui" class="mobile-ui">
+        <div class="flex gap-4">
+            <div class="joy-btn" id="ctrl-l">◀</div>
+            <div class="joy-btn" id="ctrl-r">▶</div>
+        </div>
+        <div class="flex gap-4">
+            <div class="joy-btn" style="background:#4a0000; border-color:#ff4444" id="ctrl-x">⚔️</div>
+            <div class="joy-btn" id="ctrl-a">⚡</div>
+        </div>
+    </div>
+
+    <!-- Final Screen -->
+    <div id="end-screen" class="screen" style="display:none">
+        <div class="medieval-panel text-center w-85 max-w-sm">
+            <h2 class="text-4xl mb-6 font-['MedievalSharp'] text-red-900">FIM DA JORNADA</h2>
+            <p class="italic mb-8 text-sm px-4">O Rei caiu, mas as sombras de Aethelgard ainda guardam segredos. O trono agora é seu, mas por quanto tempo?</p>
+            <div class="p-4 bg-black/10 rounded mb-6 text-xs font-bold uppercase tracking-widest">Obrigado por jogar o Beta!</div>
+            <button class="btn-medieval" onclick="location.reload()">REINICIAR</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const Sound = {
+    ctx: null,
+    init() { if(!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
+    play(freq, type, dur, vol=0.1) {
+        if(!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+        gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + dur);
+        osc.connect(gain); gain.connect(this.ctx.destination);
+        osc.start(); osc.stop(this.ctx.currentTime + dur);
+    }
+};
+
+class Game {
+    constructor() {
+        this.canvas = document.getElementById('gameCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.state = 'MENU';
+        this.char = 'LARA';
+        this.weapon = null;
+        this.player = { x: 150, vx: 0, dir: 1, anim: 0, atk: 0, hp: 100, hitCooldown: 0, legAnim: 0 };
+        this.keys = { l: false, r: false };
+        this.scene = 'OUTSIDE';
+        this.npcs = []; this.items = []; this.doors = [];
+        this.decor = [];
+        this.dialogs = []; this.diagIdx = 0;
+        
+        // Nature decor
+        for(let i=0; i<40; i++) this.decor.push({
+            x: Math.random() * 1500, y: 520 + Math.random() * 60,
+            c: ['#2d4a1e', '#3a5a2a', '#4d7a3a'][Math.floor(Math.random()*3)],
+            h: 5 + Math.random()*15
+        });
+
+        this.init();
+    }
+
+    init() {
+        window.addEventListener('resize', () => this.resize());
+        this.resize();
+        this.setupControls();
+        requestAnimationFrame(() => this.loop());
+    }
+
+    resize() {
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+    }
+
+    setupControls() {
+        const bind = (id, k, v) => {
+            const el = document.getElementById(id);
+            el.addEventListener('touchstart', (e) => { e.preventDefault(); if(this.state === 'PLAYING') this.keys[k] = v; });
+            el.addEventListener('touchend', (e) => { e.preventDefault(); this.keys[k] = !v; });
+            el.addEventListener('mousedown', () => { if(this.state === 'PLAYING') this.keys[k] = v; });
+            el.addEventListener('mouseup', () => this.keys[k] = !v);
+        };
+        bind('ctrl-l', 'l', true);
+        bind('ctrl-r', 'r', true);
+        
+        ['ctrl-a', 'ctrl-x'].forEach(id => {
+            const el = document.getElementById(id);
+            el.addEventListener('touchstart', (e) => { e.preventDefault(); id === 'ctrl-x' ? this.attack() : this.interact(); });
+            el.addEventListener('mousedown', () => id === 'ctrl-x' ? this.attack() : this.interact());
+        });
+    }
+
+    showCharSelect() {
+        Sound.init();
+        document.getElementById('main-menu').style.display = 'none';
+        document.getElementById('char-select').style.display = 'flex';
+        this.selectChar('LARA');
+    }
+
+    selectChar(c) {
+        this.char = c;
+        document.querySelectorAll('.char-card').forEach(card => card.classList.remove('selected'));
+        document.getElementById(`sel-${c.toLowerCase()}`).classList.add('selected');
+    }
+
+    startJourney() {
+        document.getElementById('char-select').style.display = 'none';
+        document.getElementById('mobile-ui').style.display = 'flex';
+        document.getElementById('inventory-screen').style.display = 'block';
+        document.getElementById('hp-ui').style.display = 'block';
+        document.getElementById('inv-char').innerText = this.char;
+        this.state = 'PLAYING';
+        this.loadScene('OUTSIDE');
+    }
+
+    attack() {
+        if(this.state === 'PLAYING' && this.weapon) { 
+            this.player.atk = 20; 
+            Sound.play(600, 'sawtooth', 0.1); 
+            this.npcs.forEach(n => {
+                if(!n.isFriendly && n.hp > 0 && Math.abs(this.player.x + (this.player.dir*50) - n.x) < 70) {
+                    n.hp -= 25; n.hitEffect = 10;
+                    Sound.play(100, 'square', 0.1);
+                }
+            });
+        }
+    }
+
+    loadScene(s) {
+        const flash = document.getElementById('flash-effect');
+        flash.style.opacity = '1'; setTimeout(() => flash.style.opacity = '0', 200);
+        
+        this.scene = s;
+        this.npcs = []; this.items = []; this.doors = [];
+        const locMap = { 
+            'OUTSIDE': 'Muralhas de Aethelgard', 
+            'CORRIDOR': 'Corredor Real',
+            'THRONE': 'Salão do Trono', 
+            'DUNGEON': 'Cala a Boca (Masmorra)', 
+            'TOWER': 'O Confronto Final' 
+        };
+        document.getElementById('inv-loc').innerText = locMap[s] || 'Reino de Aethelgard';
+
+        if(s === 'OUTSIDE') {
+            this.player.x = 100;
+            this.doors.push({x: 900, t: 'CORRIDOR', type: 'ROYAL_RED', label: 'ENTRAR NO CASTELO'});
+            if(!this.weapon) this.items.push({x: 450, type: 'SWORD', label: 'Espada de Treino'});
+            this.npcs.push({x: 750, n: "Sentinela", isFriendly: true});
+        } 
+        else if(s === 'CORRIDOR') {
+            this.player.x = 100;
+            this.doors.push({x: 850, t: 'THRONE', type: 'ROYAL_GOLD', label: 'PORTA DO REI'});
+            this.npcs.push({x: 400, n: "Guarda Real", isFriendly: true});
+        }
+        else if(s === 'THRONE') {
+            this.player.x = 80;
+            this.npcs.push({x: 880, n: "REI AETHELRED", isKing: true, isFriendly: true});
+            this.startStory([
+                {n: "REI AETHELRED", t: "Quem ousa entrar no meu salão sem ser convidado?"},
+                {n: "REI AETHELRED", t: "Olhe para você... um nada! Um verme tentando ser herói!"},
+                {n: "REI AETHELRED", t: "GUARDAS! Tirem esse lixo da minha frente! Joguem-no no CALA A BOCA!"}
+            ], () => this.loadScene('DUNGEON'));
+        }
+        else if(s === 'DUNGEON') {
+            this.player.x = 100;
+            this.npcs.push({x: 450, n: "Torturador", hp: 80, isFriendly: false});
+            this.npcs.push({x: 750, n: "Guarda da Cela", hp: 80, isFriendly: false});
+            this.doors.push({x: 940, t: 'TOWER', type: 'IRON', label: 'SUBIR À TORRE'});
+            this.startStory([{n: "Lara", t: "Preciso sair daqui e confrontar aquele Rei de uma vez por todas!"}]);
+        }
+        else if(s === 'TOWER') {
+            this.player.x = 100;
+            this.npcs.push({x: 820, n: "REI AETHELRED", isKing: true, isFriendly: false, hp: 200});
+            this.startStory([
+                {n: "REI AETHELRED", t: "Você sobreviveu ao calabouço? Impressionante para um verme."},
+                {n: "REI AETHELRED", t: "Você quer meu trono? Primeiro terá que passar por MIM!"},
+                {n: "REI AETHELRED", t: "PREPARE-SE PARA MORRER!"}
+            ]);
+        }
+    }
+
+    startStory(dialogs, onEnd) {
+        this.dialogs = dialogs; this.diagIdx = 0;
+        this.onDiagEnd = onEnd;
+        this.state = 'DIALOG';
+        this.showDialog();
+    }
+
+    showDialog() {
+        const d = this.dialogs[this.diagIdx];
+        document.getElementById('dialog-box').style.display = 'block';
+        document.getElementById('diag-name').innerText = d.n;
+        document.getElementById('diag-text').innerText = d.t;
+    }
+
+    nextText() {
+        this.diagIdx++;
+        if(this.diagIdx < this.dialogs.length) this.showDialog();
+        else {
+            document.getElementById('dialog-box').style.display = 'none';
+            this.state = 'PLAYING';
+            if(this.onDiagEnd) this.onDiagEnd();
+        }
+    }
+
+    interact() {
+        if(this.state === 'DIALOG') { this.nextText(); return; }
+        this.items.forEach((it, i) => {
+            if(Math.abs(this.player.x - it.x) < 60) {
+                this.weapon = it.type; this.items.splice(i, 1);
+                document.getElementById('inv-weapon').innerText = it.label;
+            }
+        });
+        this.doors.forEach(d => { if(Math.abs(this.player.x - d.x) < 80) this.loadScene(d.t); });
+    }
+
+    update() {
+        if(this.state === 'PLAYING') {
+            if(this.keys.l) { this.player.vx = -5; this.player.dir = -1; this.player.legAnim += 0.2; }
+            else if(this.keys.r) { this.player.vx = 5; this.player.dir = 1; this.player.legAnim += 0.2; }
+            else { this.player.vx = 0; this.player.legAnim = 0; }
+            this.player.x += this.player.vx;
+
+            if(this.player.hitCooldown > 0) this.player.hitCooldown--;
+
+            this.npcs.forEach(n => {
+                if(!n.isFriendly && n.hp > 0) {
+                    let d = this.player.x - n.x;
+                    if(Math.abs(d) < 350) {
+                        n.x += Math.sign(d) * 2.8;
+                        n.legAnim = (n.legAnim || 0) + 0.15;
+                    }
+                    if(Math.abs(d) < 55 && this.player.hitCooldown <= 0) {
+                        this.player.hp -= 12; this.player.hitCooldown = 45; this.player.hitEffect = 8;
+                        Sound.play(80, 'square', 0.2);
+                        document.getElementById('hp-fill').style.width = this.player.hp + "%";
+                        if(this.player.hp <= 0) location.reload();
+                    }
+                }
+                if(n.hp <= 0 && !n.dead) {
+                    n.dead = true;
+                    if(n.isKing) {
+                        this.startStory([
+                            {n: "REI AETHELRED", t: "Como... um verme como você... me derrotou..."},
+                            {n: "Sistema", t: "O Rei caiu! Fuja para as Terras Livres!"}
+                        ], () => {
+                            this.doors.push({x: 920, t: 'FINAL', type: 'EXIT', label: 'FINALIZAR'});
+                        });
+                    }
+                }
+            });
+
+            if(this.scene === 'FINAL' || (this.scene === 'TOWER' && this.player.x > 900 && this.npcs.find(k=>k.isKing)?.dead)) {
+                this.state = 'END';
+                document.getElementById('mobile-ui').style.display = 'none';
+                document.getElementById('end-screen').style.display = 'flex';
+            }
+        }
+        if(this.player.atk > 0) this.player.atk--;
+        this.player.anim += 0.05;
+    }
+
+    draw() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        const scale = this.canvas.width / 1000;
+        this.ctx.save();
+        this.ctx.scale(scale, scale);
+        const gy = 520;
+        this.ctx.translate(0, (this.canvas.height/scale)-600);
+
+        this.drawBackground(gy);
+        
+        // Portas
+        this.doors.forEach(d => this.drawDoor(d.x, gy, d.type));
+        
+        // Itens
+        this.items.forEach(it => this.drawSword(it.x, gy-20, 0));
+
+        // NPCs
+        this.npcs.forEach(n => {
+            if(!n.dead) this.drawChar(n.x, gy, n.n, false, n.isKing, n.hp, n.hitEffect, n.legAnim || 0);
+        });
+
+        // Player
+        this.drawChar(this.player.x, gy, this.char, true, false, null, this.player.hitEffect, this.player.legAnim);
+
+        this.ctx.restore();
+    }
+
+    drawBackground(gy) {
+        if(this.scene === 'OUTSIDE') {
+            let sky = this.ctx.createLinearGradient(0,0,0,gy); sky.addColorStop(0, "#050a14"); sky.addColorStop(1, "#1a2a44");
+            this.ctx.fillStyle = sky; this.ctx.fillRect(0,0,1000,gy);
+            
+            // Desenho do Castelo (Silhueta)
+            this.ctx.fillStyle = "#0a0a1a";
+            this.ctx.fillRect(600, gy-400, 350, 400); // Corpo principal
+            this.ctx.fillRect(550, gy-500, 80, 500);  // Torre esquerda
+            this.ctx.fillRect(920, gy-500, 80, 500);  // Torre direita
+            // Detalhes das torres
+            this.ctx.fillStyle = "#000";
+            for(let i=0; i<3; i++) this.ctx.fillRect(540 + i*30, gy-520, 20, 20);
+            for(let i=0; i<3; i++) this.ctx.fillRect(910 + i*30, gy-520, 20, 20);
+
+            this.ctx.fillStyle = "#101a0a"; this.ctx.fillRect(0, gy, 1000, 100);
+            this.decor.forEach(g => { this.ctx.fillStyle = g.c; this.ctx.fillRect(g.x, gy-g.h, 3, g.h); });
+        } else if (this.scene === 'CORRIDOR') {
+            this.ctx.fillStyle = "#1a100a"; this.ctx.fillRect(0,0,1000,gy);
+            this.ctx.fillStyle = "#0a0a0a"; this.ctx.fillRect(0, gy, 1000, 100);
+            this.ctx.fillStyle = "#500"; this.ctx.fillRect(0, gy-8, 1000, 8); // Tapete central
+            this.ctx.fillStyle = "#111";
+            for(let i=150; i<1000; i+=350) this.ctx.fillRect(i, 0, 50, gy); // Pilares
+        } else {
+            this.ctx.fillStyle = (this.scene === 'DUNGEON') ? "#050505" : "#1a0505";
+            this.ctx.fillRect(0,0,1000,gy);
+            this.ctx.fillStyle = "#000"; this.ctx.fillRect(0, gy, 1000, 100);
+            if(this.scene === 'THRONE') {
+                this.ctx.fillStyle = "#700"; this.ctx.fillRect(0, gy-6, 1000, 6);
+                // Trono
+                this.ctx.fillStyle = "gold"; this.ctx.fillRect(850, gy-120, 80, 120);
+                this.ctx.fillStyle = "#500"; this.ctx.fillRect(860, gy-110, 60, 110);
+            }
+        }
+    }
+
+    drawDoor(x, gy, type) {
+        this.ctx.save();
+        this.ctx.translate(x-50, gy-200);
+        if(type === 'ROYAL_RED') {
+            this.ctx.fillStyle = "#600"; this.ctx.fillRect(0, 0, 100, 200);
+            this.ctx.strokeStyle = "#300"; this.ctx.lineWidth = 8; this.ctx.strokeRect(0, 0, 100, 200);
+            this.ctx.fillStyle = "gold"; this.ctx.beginPath(); this.ctx.arc(20, 100, 7, 0, 7); this.ctx.fill();
+        } else if(type === 'ROYAL_GOLD') {
+            this.ctx.fillStyle = "#700"; this.ctx.fillRect(0, 0, 100, 200);
+            this.ctx.strokeStyle = "gold"; this.ctx.lineWidth = 5; this.ctx.strokeRect(5, 5, 90, 190);
+            this.ctx.fillStyle = "gold"; this.ctx.fillRect(48, 0, 4, 200);
+            this.ctx.beginPath(); this.ctx.arc(20, 100, 6, 0, 7); this.ctx.fill();
+            this.ctx.beginPath(); this.ctx.arc(80, 100, 6, 0, 7); this.ctx.fill();
+        } else if(type === 'IRON') {
+            this.ctx.fillStyle = "#222"; this.ctx.fillRect(0, 0, 80, 200);
+            this.ctx.fillStyle = "#111"; 
+            for(let i=0; i<200; i+=25) this.ctx.fillRect(0, i, 80, 3);
+            for(let i=0; i<80; i+=20) this.ctx.fillRect(i, 0, 3, 200);
+        }
+        this.ctx.restore();
+    }
+
+    drawChar(x, gy, name, isPlayer, isKing, hp, hitEffect, legAnim) {
+        this.ctx.save();
+        this.ctx.translate(x, gy + Math.sin(this.player.anim*5)*2);
+        if(hitEffect > 0) this.ctx.translate(Math.sin(hitEffect*4)*4, 0);
+
+        const dir = isPlayer ? this.player.dir : (x < this.player.x ? 1 : -1);
+        if(dir === -1) this.ctx.scale(-1, 1);
+
+        const legOff = Math.sin(legAnim*5) * 12;
+        this.ctx.fillStyle = isPlayer ? (this.char === 'LARA' ? '#3d1a11' : '#111') : '#222';
+        this.ctx.fillRect(-12, -25, 12, 25 + (dir*legOff*0.5));
+        this.ctx.fillRect(4, -25, 12, 25 - (dir*legOff*0.5));
+
+        this.ctx.fillStyle = "rgba(0,0,0,0.4)";
+        this.ctx.beginPath(); this.ctx.ellipse(0, 0, 30, 10, 0, 0, 7); this.ctx.fill();
+
+        if(isPlayer && this.char === 'LARA') {
+            let grad = this.ctx.createLinearGradient(0, -80, 0, -25); grad.addColorStop(0, "#a03030"); grad.addColorStop(1, "#601010");
+            this.ctx.fillStyle = hitEffect > 0 ? "white" : grad;
+            this.ctx.beginPath(); this.ctx.moveTo(-22, -25); this.ctx.lineTo(22, -25); this.ctx.lineTo(18, -80); this.ctx.lineTo(-18, -80); this.ctx.fill();
+        } else {
+            this.ctx.fillStyle = hitEffect > 0 ? "white" : (isKing ? "#300060" : (isPlayer ? "#1a1a2a" : "#2a2a2a"));
+            this.ctx.fillRect(-20, -80, 40, 55);
+        }
+
+        this.ctx.fillStyle = '#fceabb'; 
+        this.ctx.beginPath(); this.ctx.arc(0, -100, 26, 0, Math.PI*2); this.ctx.fill();
+
+        this.ctx.fillStyle = "#000";
+        this.ctx.beginPath(); this.ctx.arc(12, -105, 3, 0, 7); this.ctx.fill();
+        this.ctx.beginPath(); this.ctx.arc(22, -105, 3, 0, 7); this.ctx.fill();
+        this.ctx.fillRect(14, -92, 8, 2);
+
+        if(isKing) {
+            this.ctx.fillStyle="gold"; this.ctx.beginPath();
+            this.ctx.moveTo(-30, -125); this.ctx.lineTo(-20, -145); this.ctx.lineTo(-10, -125);
+            this.ctx.lineTo(0, -145); this.ctx.lineTo(10, -125); this.ctx.lineTo(20, -145);
+            this.ctx.lineTo(30, -125); this.ctx.fill();
+            this.ctx.fillStyle="#eee"; this.ctx.fillRect(-22, -90, 44, 18);
+        } else if(isPlayer) {
+            this.ctx.fillStyle = this.char === 'LARA' ? "#4d2e0e" : "#000";
+            if(this.char === 'LARA') {
+                this.ctx.beginPath(); this.ctx.arc(0, -110, 28, Math.PI, 0); this.ctx.fill();
+                this.ctx.fillRect(-28, -110, 14, 60);
+            } else {
+                this.ctx.beginPath(); this.ctx.arc(0, -105, 28, Math.PI, 0); this.ctx.fill();
+            }
+        }
+
+        if(isPlayer && this.weapon) {
+            this.ctx.save(); this.ctx.translate(30, -50); this.ctx.rotate(this.player.atk > 0 ? -2.0 : -0.3);
+            this.drawSword(0, 0, 0); this.ctx.restore();
+        }
+        this.ctx.restore();
+
+        if(hp !== null && hp !== undefined) {
+            this.ctx.fillStyle = "#000"; this.ctx.fillRect(x-50, y-185, 100, 10);
+            this.ctx.fillStyle = "#f00"; this.ctx.fillRect(x-50, y-185, (hp/200)*100, 10);
+        }
+        if(name) {
+            this.ctx.fillStyle = isKing ? "#ffd700" : "#fff";
+            this.ctx.font = "bold 18px MedievalSharp"; this.ctx.textAlign = "center";
+            this.ctx.fillText(name, x, y - 160);
+        }
+    }
+
+    drawSword(x, y, angle) {
+        this.ctx.save(); this.ctx.translate(x, y); this.ctx.rotate(angle);
+        this.ctx.fillStyle = "#d1d5db"; this.ctx.fillRect(0, -5, 60, 10);
+        this.ctx.fillStyle = "#ffd700"; this.ctx.fillRect(-8, -18, 12, 36);
+        this.ctx.fillStyle = "#3b1e08"; this.ctx.fillRect(-25, -5, 18, 10);
+        this.ctx.restore();
+    }
+
+    loop() { this.update(); this.draw(); requestAnimationFrame(() => this.loop()); }
+}
+const game = new Game();
+</script>
+</body>
+</html>
